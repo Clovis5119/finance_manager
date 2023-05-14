@@ -13,9 +13,9 @@ Flow:
 
 """
 
-
-import csv
 from file_handler import FileCSV
+import json
+from categories import categories
 
 
 class MonthlyFinances:
@@ -109,5 +109,29 @@ class MonthlyFinances:
         self.perm_file.write_content(self.data)
         print(f"Changes saved to permanent file ::  {self.path}.csv")
 
+    def simple_readout(self):
+        """Puts out a simple terminal printout of the transaction data."""
+        all_transactions = categories       # Dictionary to fill with data
 
-# main = MonthlyFinances('2022', '04')
+        # Iterate over each row of data, except first row
+        for row in self.data[1:]:
+            # Keys to populate the dictionary
+            trans, cat, sub = row[2].lower(), row[3].lower(), row[4].lower()
+
+            # Get transaction amount for current row
+            try:
+                amount = round(float(row[5]), 2)
+            except ValueError as err:
+                print(f"ValueError ::  {err}  :: Check CSV for name errors.")
+                amount = 0.00
+
+            # Tally transaction amounts for each subcategory
+            try:
+                all_transactions[trans][cat][sub] += amount
+            except KeyError as err:
+                print(
+                    f"KeyError ::  {trans} type {err} not recognized")
+                pass
+
+        # Terminal printout of the dictionary
+        print(json.dumps(all_transactions, indent=4))

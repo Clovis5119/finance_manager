@@ -8,10 +8,8 @@ TODO:
  - Allow user to apply category changes to all existing files
  - Set up an options file for convenient styling
     - Turn this into a menu for the user, eventually
- - Provide option for simple summary readout of monthly expenses
  - Provide option for creating beautiful Excel sheet based on yearly data
  - Provide transaction history search options, global and by type
- -
 
 
 """
@@ -104,6 +102,7 @@ class App:
         self._create_btn_delete()
         self._create_drop_year()
         self._create_drop_month()
+        self._create_btn_readout()
         self._create_btn_save()
         self.fill_tree()
 
@@ -291,6 +290,22 @@ class App:
         btn_del["text"] = "Delete Selection"
         btn_del.place(x=480, y=200, width=200, height=30)
         btn_del["command"] = btn_del_command
+
+    def _create_btn_readout(self):
+        """A button that displays a simple summary readout."""
+        def btn_readout_command():
+            self.content.simple_readout()
+
+        # Create income button
+        btn_save = tk.Button(self.master)
+        btn_save["bg"] = "#ffffff"
+        ft = tkFont.Font(family='Times', size=10)
+        btn_save["font"] = ft
+        btn_save["fg"] = "#000000"
+        btn_save["justify"] = "center"
+        btn_save["text"] = "Summary Readout"
+        btn_save.place(x=480, y=530, width=200, height=30)
+        btn_save["command"] = btn_readout_command
 
     def _create_btn_save(self):
         """"""
