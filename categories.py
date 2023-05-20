@@ -1,119 +1,115 @@
 categories = {
-    'income': {
-        'employment': {
-            'salary': 0.00,
-            'bonus': 0.00,
+    "Income": {
+        "Employment": {
+            "Salary": 0.0,
+            "Bonus": 0.0
         },
-        'investments': {
-            'dividends': 0.00,
-            'sales': 0.00,
+        "Investments": {
+            "Dividends": 0.0,
+            "Sales": 0.0
         },
-        'gifts': {
-            'cashback': 0.00,
-            'personal': 0.00,
-            'reward': 0.00,
+        "Gifts": {
+            "Cashback": 0.0,
+            "Personal": 0.0,
+            "Reward": 0.0
         },
-        'refunds': {
-            'federal': 0.00,
-            'state': 0.00,
-            'other': 0.00,
-        },
+        "Refunds": {
+            "Federal": 0.0,
+            "State": 0.0,
+            "Other": 0.0
+        }
     },
-    'expense': {
-        'housing': {
-            'mortgage': 0.00,
-            'rent': 0.00,
-            "renter's insurance": 0.00,
-            'household repairs / renovations': 0.00
+    "Expense": {
+        "Housing": {
+            "Mortgage": 0.0,
+            "Rent": 0.0,
+            "Renter's insurance": 0.0,
+            "Household repairs / renovations": 0.0
         },
-        'utilities': {
-            'electric / gas': 0.00,
-            'internet': 0.00,
-            'laundry': 0.00,
-            'phone': 0.00,
-            'waste disposal': 0.00,
-            'water / sewage': 0.00,
+        "Utilities": {
+            "Electric / gas": 0.0,
+            "Internet": 0.0,
+            "Laundry": 0.0,
+            "Phone": 0.0,
+            "Waste disposal": 0.0,
+            "Water / sewage": 0.0
         },
-        'household items': {
-            'appliances': 0.00,
-            'cleaning / maintenance': 0.00,
-            'decorations': 0.00,
-            'furniture / bedding': 0.00,
-            'toiletries': 0.00,
-            'tools / storage': 0.00,
+        "Household Items": {
+            "Appliances": 0.0,
+            "Cleaning / maintenance": 0.0,
+            "Decorations": 0.0,
+            "Furniture / bedding": 0.0,
+            "Toiletries": 0.0,
+            "Tools / storage": 0.0
         },
-        'personal': {
-            'body care': 0.00,
-            'clothes / shoes': 0.00,
-            'fitness': 0.00,
-            'salons / spa': 0.00,
+        "Personal": {
+            "Body care": 0.0,
+            "Clothes / shoes": 0.0,
+            "Fitness": 0.0,
+            "Salons / spa": 0.0
         },
-        'travel': {
-            'auto insurance': 0.00,
-            'car payments': 0.00,
-            'fuel': 0.00,
-            'maintenance / repairs': 0.00,
-            'public transportation': 0.00,
-            'parking': 0.00,
-            'registration / other fees': 0.00,
-            'rentals': 0.00,
+        "Travel": {
+            "Auto insurance": 0.0,
+            "Car payments": 0.0,
+            "Fuel": 0.0,
+            "Maintenance / repairs": 0.0,
+            "Public transportation": 0.0,
+            "Parking": 0.0,
+            "Registration / other fees": 0.0,
+            "Rentals": 0.0
         },
-        'leisure': {
-            'books': 0.00,
-            'electronics / software': 0.00,
-            'experiences / events': 0.00,
-            'games': 0.00,
-            'movies': 0.00,
-            'music': 0.00,
-            'shopping': 0.00,
-            'sports': 0.00,
-            'substances': 0.00,
-            'vacations': 0.00,
+        "Leisure": {
+            "Books": 0.0,
+            "Electronics / software": 0.0,
+            "Experiences / events": 0.0,
+            "Games": 0.0,
+            "Movies": 0.0,
+            "Music": 0.0,
+            "Shopping": 0.0,
+            "Sports": 0.0,
+            "Substances": 0.0,
+            "Vacations": 0.0
         },
-        'food': {
-            'groceries': 0.00,
-            'restaurants': 0.00,
-            'snacks / beverages': 0.00,
+        "Food": {
+            "Groceries": 0.0,
+            "Restaurants": 0.0,
+            "Snacks / beverages": 0.0
         },
-        'healthcare': {
-            'medication / supplies': 0.00,
-            'primary care': 0.00,
-            'specialty care': 0.00,
-            'urgent care': 0.00,
+        "Healthcare": {
+            "Medication / supplies": 0.0,
+            "Primary care": 0.0,
+            "Specialty care": 0.0,
+            "Urgent care": 0.0
         },
-        'education': {
-            'books': 0.00,
-            'student loans': 0.00,
-            'supplies': 0.00,
-            'tuition': 0.00,
+        "Education": {
+            "Books": 0.0,
+            "Student loans": 0.0,
+            "Supplies": 0.0,
+            "Tuition": 0.0
         },
-        'pets': {
-            'food': 0.00,
-            'supplies': 0.00,
-            'toys': 0.00,
-            'veterinarian': 0.00,
+        "Pets": {
+            "Food": 0.0,
+            "Supplies": 0.0,
+            "Toys": 0.0,
+            "Veterinarian": 0.0
         },
-        'relationships': {
-            'charity': 0.00,
-            'family': 0.00,
-            'friend': 0.00,
-            'romantic': 0.00,
-            'other': 0.00,
+        "Relationships": {
+            "Charity": 0.0,
+            "Family": 0.0,
+            "Friend": 0.0,
+            "Romantic": 0.0,
+            "Other": 0.0
         },
-        'fees': {
-            'banking fees': 0.00,
-            'federal / state tax': 0.00,
-            'mail': 0.00,
-            'moving services': 0.00,
-            'legal services': 0.00,
-            'sales tax': 0.00,
-            'tips': 0.00,
-        },
+        "Fees": {
+            "Banking fees": 0.0,
+            "Federal / state tax": 0.0,
+            "Mail": 0.0,
+            "Moving services": 0.0,
+            "Legal services": 0.0,
+            "Sales tax": 0.0,
+            "Tips": 0.0
+        }
     }
-}
-
-expenses = {
-
 }
 
 keys = ['Day', 'Vendor', 'Transaction', 'Category', 'Subcategory', 'Amount',

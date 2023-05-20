@@ -2,7 +2,9 @@
 TODO:
  - Menu bar for options
  - Allow user to create new year file
+    - Add + button in dropdown year menu
  - Allow user to create new month file
+    - Add + button in dropdown month menu
  - Allow user to set transaction file directory
  - Allow user to set their own categories
  - Allow user to apply category changes to all existing files
@@ -10,7 +12,8 @@ TODO:
     - Turn this into a menu for the user, eventually
  - Provide option for creating beautiful Excel sheet based on yearly data
  - Provide transaction history search options, global and by type
-
+ - Allow nesting transaction types within single purchase
+    - So user can collapse and see the total or breakdown in the GUI
 
 """
 
@@ -41,25 +44,12 @@ def get_day_list(year, month):
     return list(range(1, monthrange(y, m)[1] + 1))
 
 
-def capitalize(n):
-    """
-    TODO: Special formatting
-
-    :param n: List of items to be capitalized
-    :return: List of items with capitalized first letters
-    """
-    return [i.title() for i in n]
-
-
 class App:
 
     def __init__(self, master):
 
         # Default to the current year
         self.year = datetime.now().strftime('%Y')       # Ex: 2023
-
-        # Set default file directory
-        self.dir = DirReader('D:/cs/projects/finances/test_dir')
 
         # Default to the current month
         self.month = datetime.now().strftime('%B')      # Ex: 'August'
@@ -85,6 +75,12 @@ class App:
                                     (screenheight - height) / 2)
         self.master.geometry(alignstr)
         self.master.resizable(width=False, height=False)
+
+        menubar = tk.Menu(self.master)
+        self.master.config(menu=menubar)
+        file_menu = tk.Menu(menubar, tearoff=False)
+        file_menu.add_command(label='Exit', command=self.master.destroy)
+        menubar.add_cascade(label='File', menu=file_menu, underline=0)
 
     def build_gui(self):
         """Build all the GUI elements."""
@@ -395,7 +391,7 @@ class TransactionPopUp:
 
         # Serves as the top-level menu for categories and subcategories
         self.transaction_type = transaction             # May not be needed
-        self.transaction_key = transaction.lower()
+        self.transaction_key = transaction
 
         # Create a top-level window as the popup
         self.popup = tk.Toplevel(parent)
@@ -423,7 +419,7 @@ class TransactionPopUp:
         self.initial_values = {
             'Day': str(datetime.now().day),
             'Corp': '',
-            'Type': self.transaction_key.title(),
+            'Type': self.transaction_key,
             'Category': '',
             'Subcategory': '',
             'Amount': '',
@@ -431,17 +427,14 @@ class TransactionPopUp:
         }
 
         # Set default lists, starting with transaction types
-        transaction_keys = [*cats]
-        self.transaction_list = [x.title() for x in transaction_keys]
+        self.transaction_list = [*cats]
 
         # Set default category list and initial value
-        category_keys = [*cats[self.transaction_key]]
-        self.category_list = capitalize(category_keys)
+        self.category_list = [*cats[self.transaction_key]]
         self.initial_values['Category'] = self.category_list[0]
 
         # Set default subcategory list and initial value
-        subcat_keys = [*cats[self.transaction_key][category_keys[0]]]
-        self.subcat_list = capitalize(subcat_keys)
+        self.subcat_list = [*cats[self.transaction_key][self.category_list[0]]]
         self.initial_values['Subcategory'] = self.subcat_list[0]
 
         # Assemble the popup UI
@@ -556,8 +549,8 @@ class TransactionPopUp:
         """Delete and repopulate list of categories."""
 
         # Update list of available categories based on transaction type
-        self.transaction_key = self.selected_type.get().lower()
-        self.category_list = capitalize([*cats[self.transaction_key]])
+        self.transaction_key = self.selected_type.get()
+        self.category_list = [*cats[self.transaction_key]]
 
         # Clear current menu contents
         menu = self.drop_cat['menu']
@@ -575,8 +568,8 @@ class TransactionPopUp:
         """Delete and repopulate list of sub-categories."""
 
         # Update list of available subcategories based on selected category
-        new_cat = self.selected_cat.get().lower()
-        subcats = capitalize([*cats[self.transaction_key][new_cat]])
+        new_cat = self.selected_cat.get()
+        subcats = [*cats[self.transaction_key][new_cat]]
 
         # Clear current menu contents
         menu = self.drop_subcat['menu']
@@ -900,7 +893,6 @@ if __name__ == "__main__":
     root = tk.Tk()          # Create root TK window
     app = App(root)         # Initialize GUI with root as parent
     app.build_gui()         # Build GUI elements
-    # app = PopUp()
     root.mainloop()
 
     app.content.close_month()

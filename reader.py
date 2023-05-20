@@ -1,7 +1,7 @@
 """
 TO DO:
 
-Create temporary file to act as buffer so we can undo actions.
+Create temporary file to act as buffer, so we can undo actions.
 
 Flow:
 - Read original file (perm file), set initial data state
@@ -48,7 +48,7 @@ class MonthlyFinances:
 
         TODO: Handle exceptions when no matching string is found.
 
-        :param n: string to be found in CSV's header row
+        :param n: string to be found in CSV header row
         :return: string's index in the header row
         """
         return self.data[0].index(n.strip())
