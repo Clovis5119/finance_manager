@@ -15,7 +15,7 @@ class FileCSV:
         csv.register_dialect('default', delimiter=',', lineterminator='\r')
 
     def check_file_exists(self):
-        """Returns TRUE if the file exists, FALSE if it does not."""
+        """Returns TRUE if file exists, FALSE if not."""
         try:
             with open(self.filename):
                 return True
@@ -26,6 +26,10 @@ class FileCSV:
         """
         Returns content of CSV file as a list of lists.
         Could add option to return with/without header row.
+
+        TODO: This shouldn't happen if the file was created via the program,
+         but if an entry trips the unicode decode, add a function that can
+         identify exactly what line in the CSV file caused it.
         """
         try:
             with open(self.filename, encoding='utf-8') as f_obj:
@@ -50,12 +54,12 @@ class FileCSV:
                 for row in new_content:
                     writer.writerow(row)
         except TypeError:
-            print('ERR: TypeError when attempting to write content.')
+            print('*ERR: TypeError when attempting to write content.')
 
         self.exists = True
 
     def clear_content(self):
-        """Clears the file of any content."""
+        """Clears the file of content, without deleting the file."""
         with open(self.filename, 'w') as f_obj:
             f_obj.truncate(0)
 
@@ -65,7 +69,7 @@ class FileCSV:
             os.remove(self.filename)
             self.exists = False
         else:
-            print("Cannot delete file. It does not exist.")
+            print(f"Cannot delete file {self.filename}. It does not exist.")
 
 
 class DirReader:
@@ -89,5 +93,6 @@ class DirReader:
             if date[:4] == year and date[8:12] != 'temp':
                 month = int(date[5:7])
                 months.append(calendar.month_name[month])
+        print(f"Months available for year {year}: {months}")
         return months
 

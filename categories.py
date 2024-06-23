@@ -49,9 +49,11 @@ categories = {
             "Salons / spa": 0.0
         },
         "Travel": {
+            "Airfare": 0.0,
             "Auto insurance": 0.0,
             "Car payments": 0.0,
             "Fuel": 0.0,
+            "Lodging": 0.0,
             "Maintenance / repairs": 0.0,
             "Public transportation": 0.0,
             "Parking": 0.0,
@@ -112,5 +114,5 @@ categories = {
     }
 }
 
-keys = ['Day', 'Vendor', 'Transaction', 'Category', 'Subcategory', 'Amount',
+keys = ['Day', 'Company', 'Transaction', 'Category', 'Subcategory', 'Amount',
         'Note']

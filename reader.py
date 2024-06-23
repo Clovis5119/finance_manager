@@ -1,33 +1,39 @@
 """
-TO DO:
+Program flow:
+- Create or read original file (perm file), set initial data state
+- Copy data from perm file to a temporary working file
+- Changes should modify temp file only
+- Save button or exiting program commits changes to perm file
 
-Create temporary file to act as buffer, so we can undo actions.
-
-Flow:
-- Read original file (perm file), set initial data state
-- Create temporary file
-- Copy perm file to temp file, which becomes working file
-- Changes should modify data state whenever possible
-    - If not possible, changes should modify temp file
-- Provide save button to commit changes to perm file
-
+TODO: It's questionable that a temp file is needed at all. Could just work
+ from within self.data.
 """
 
 from file_handler import FileCSV
 import json
 from categories import categories
+from categories import keys
 
 
 class MonthlyFinances:
     def __init__(self, year, month):
 
+        # Create file path based on provided date
         self.path = f'test_dir/{year}-{month}'
 
-        # Open permanent file and get its contents
+        # Open permanent file object
         self.perm_file = FileCSV(f'{self.path}.csv')
+
+        # If perm CSV file doesn't already exist, create it
+        if self.perm_file.exists is False:
+            print("File for current month not found.")
+            self.perm_file.write_content([keys])        # Write header line
+            print(f"Created perm file :: {self.path}")
+
+        # Get perm file contents
         self.data = self.perm_file.get_content()
 
-        # Create temp working file and copy contents to it
+        # Create temporary working file and copy contents to it
         self.temp_file = FileCSV(f'{self.path}-temp.csv')
         self.temp_file.write_content(self.data)
         print(f"Created temp file ::  {f'{self.path}-temp.csv'}")
@@ -39,7 +45,7 @@ class MonthlyFinances:
         try:
             return len(self.data)
         except TypeError:
-            print("ERR: TypeError when attempting to measure length.")
+            print("ERR: TypeError when attempting to measure CSV length.")
             pass
 
     def get_header_index(self, n):
@@ -104,6 +110,7 @@ class MonthlyFinances:
 
         self.commit_changes()
         self.temp_file.delete_file()
+        print(f"Deleted temp file.")
 
     def commit_changes(self):
         self.perm_file.write_content(self.data)
@@ -116,7 +123,7 @@ class MonthlyFinances:
         # Iterate over each row of data, except first row
         for row in self.data[1:]:
             # Keys to populate the dictionary
-            trans, cat, sub = row[2].lower(), row[3].lower(), row[4].lower()
+            trans, cat, sub = row[2], row[3], row[4]
 
             # Get transaction amount for current row
             try:

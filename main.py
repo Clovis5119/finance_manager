@@ -1,6 +1,8 @@
 """
 TODO:
- - Menu bar for options
+ - Expand menu bar
+    - Add options submenu
+    - Create class for setting options
  - Allow user to create new year file
     - Add + button in dropdown year menu
  - Allow user to create new month file
@@ -14,6 +16,8 @@ TODO:
  - Provide transaction history search options, global and by type
  - Allow nesting transaction types within single purchase
     - So user can collapse and see the total or breakdown in the GUI
+ - Handle user inputing non UTF-8 characters
+ - Add handling for recurring transactions
 
 """
 
@@ -48,12 +52,11 @@ class App:
 
     def __init__(self, master):
 
-        # Default to the current year
-        self.year = datetime.now().strftime('%Y')       # Ex: 2023
-
-        # Default to the current month
-        self.month = datetime.now().strftime('%B')      # Ex: 'August'
-        self.month_num = datetime.now().strftime('%m')  # Ex: '08'
+        # Default to the current year and month
+        date_now = datetime.now()
+        self.year = date_now.strftime('%Y')       # Ex: 2023
+        self.month = date_now.strftime('%B')      # Ex: 'August'
+        self.month_num = date_now.strftime('%m')  # Ex: '08'
 
         # Set root to constant variable
         self.master = master
@@ -61,13 +64,14 @@ class App:
         # Initialize empty variables
         self.content = None         # Content to fill treeview
         self.drop_month = None      # Tk options menu widget
+        self.selected_year = None   # Tk var for currently selected year
         self.selected_month = None  # Tk var for currently selected month
 
         # Set window title
         self.master.title("Finance Manager")
 
         # Set window size
-        width = 700
+        width = 735
         height = 630
         screenwidth = root.winfo_screenwidth()
         screenheight = root.winfo_screenheight()
@@ -98,11 +102,12 @@ class App:
         self._create_btn_delete()
         self._create_drop_year()
         self._create_drop_month()
+        self._create_btn_new_month()
         self._create_btn_readout()
         self._create_btn_save()
         self.fill_tree()
 
-    def fill_tree(self, content_added=False):
+    def fill_tree(self, content_added=False, new_month=False):
         """Fill the treeview with content."""
 
         # Clear the box of any content
@@ -114,24 +119,31 @@ class App:
         # Avoids creating a new instance of the same data
         if content_added:
             pass
+        elif new_month:
+            self.content = MonthlyFinances(self.year, self.month_num)
+            self.selected_year.set(self.year)
+            self.selected_month.set(self.month)
         else:
             self.content = MonthlyFinances(self.year, self.month_num)
 
         # Get column index for headers we care about.
         # TODO: Create settings file that includes header preferences.
+        c0 = self.content.get_header_index('Day')
         c1 = self.content.get_header_index('Company')
         c2 = self.content.get_header_index('Subcategory')
         c3 = self.content.get_header_index('Amount')
 
         # Fill the treeview data, row by row
         for row in range(1, self.content.length):
+
             # Get the data for each column
+            col0 = self.content.get_value(row, c0)
             col1 = self.content.get_value(row, c1)
             col2 = self.content.get_value(row, c2)
             col3 = self.content.get_value(row, c3)
 
             # Then arrange and format it
-            text = [f"{col1}", f"{col2}", f"{col3}"]
+            text = [f"{col0}", f"{col1}", f"{col2}", f"{col3}"]
 
             # Then insert it in the treeview
             self.tree.insert(parent='', index=row, text='', values=text)
@@ -189,7 +201,7 @@ class App:
     def _set_treeview(self):
         """"""
         # Create main treeview
-        self.tree['columns'] = ('Company', 'Category', 'Amount')
+        self.tree['columns'] = ('Day', 'Company', 'Category', 'Amount')
 
         # Scroll bar
         tree_scroll = ttk.Scrollbar(self.tree)
@@ -198,21 +210,23 @@ class App:
         tree_scroll.pack(side=tk.RIGHT, fill=tk.BOTH)
 
         self.tree.column("#0", width=0, stretch=tk.NO)
+        self.tree.column('Day', anchor=tk.W, width=35)
         self.tree.column('Company', anchor=tk.W, width=170)
         self.tree.column('Category', anchor=tk.W, width=170)
         self.tree.column('Amount', anchor=tk.W, width=100)
 
         self.tree.heading("#0", text='', anchor=tk.CENTER)
+        self.tree.heading('Day', text='Day', anchor=tk.CENTER)
         self.tree.heading('Company', text='Company', anchor=tk.CENTER)
         self.tree.heading('Category', text='Category', anchor=tk.CENTER)
         self.tree.heading('Amount', text='Amount', anchor=tk.CENTER)
 
-        self.tree.place(x=20, y=50, width=440, height=560)
+        self.tree.place(x=20, y=50, width=475, height=560)
 
     def _create_btn_income(self):
         """"""
         def btn_income_command():
-            TransactionPopUp(self.master, transaction='Income')
+            PopUpTransaction(self.master, transaction='Income')
 
         # Create income button
         btn_income = tk.Button(self.master)
@@ -222,13 +236,13 @@ class App:
         btn_income["fg"] = "#000000"
         btn_income["justify"] = "center"
         btn_income["text"] = "Add Income"
-        btn_income.place(x=480, y=50, width=200, height=30)
+        btn_income.place(x=510, y=50, width=200, height=30)
         btn_income["command"] = btn_income_command
 
     def _create_btn_expense(self):
         """"""
         def btn_expense_command():
-            TransactionPopUp(self.master, transaction='Expense')
+            PopUpTransaction(self.master, transaction='Expense')
 
         # Create expense button
         btn_expense = tk.Button(self.master)
@@ -238,7 +252,7 @@ class App:
         btn_expense["fg"] = "#000000"
         btn_expense["justify"] = "center"
         btn_expense["text"] = "Add Expense"
-        btn_expense.place(x=480, y=100, width=200, height=30)
+        btn_expense.place(x=510, y=100, width=200, height=30)
         btn_expense["command"] = btn_expense_command
 
     def _create_btn_edit(self):
@@ -249,7 +263,7 @@ class App:
 
             if iid:
                 edit_row = self.content.data[index]
-                TransactionPopUp(self.master, existing_values=edit_row)
+                PopUpTransaction(self.master, existing_values=edit_row)
 
         # Create edit button
         btn_edit = tk.Button(self.master)
@@ -259,7 +273,7 @@ class App:
         btn_edit["fg"] = "#000000"
         btn_edit["justify"] = "center"
         btn_edit["text"] = "Edit Selection"
-        btn_edit.place(x=480, y=150, width=200, height=30)
+        btn_edit.place(x=510, y=150, width=200, height=30)
         btn_edit["command"] = btn_edit_command
 
     def _create_btn_delete(self):
@@ -284,7 +298,7 @@ class App:
         btn_del["fg"] = "#000000"
         btn_del["justify"] = "center"
         btn_del["text"] = "Delete Selection"
-        btn_del.place(x=480, y=200, width=200, height=30)
+        btn_del.place(x=510, y=200, width=200, height=30)
         btn_del["command"] = btn_del_command
 
     def _create_btn_readout(self):
@@ -300,7 +314,7 @@ class App:
         btn_save["fg"] = "#000000"
         btn_save["justify"] = "center"
         btn_save["text"] = "Summary Readout"
-        btn_save.place(x=480, y=530, width=200, height=30)
+        btn_save.place(x=510, y=530, width=200, height=30)
         btn_save["command"] = btn_readout_command
 
     def _create_btn_save(self):
@@ -316,7 +330,7 @@ class App:
         btn_save["fg"] = "#000000"
         btn_save["justify"] = "center"
         btn_save["text"] = "Save Changes"
-        btn_save.place(x=480, y=580, width=200, height=30)
+        btn_save.place(x=510, y=580, width=200, height=30)
         btn_save["command"] = btn_save_command
 
     def _create_drop_year(self):
@@ -325,11 +339,11 @@ class App:
         year_list = path.get_years()
 
         # Create and set TK string variable for selected year
-        selected_year = tk.StringVar()
-        selected_year.set(self.year)
+        self.selected_year = tk.StringVar()
+        self.selected_year.set(self.year)
 
         # Create dropdown widget, setting initial year and menu options
-        drop_year = tk.OptionMenu(self.master, selected_year, *year_list)
+        drop_year = tk.OptionMenu(self.master, self.selected_year, *year_list)
 
         # Format and place dropdown widget
         drop_year["bg"] = "#e9e9ed"
@@ -340,11 +354,14 @@ class App:
         drop_year.place(x=20, y=10, width=100, height=30)
 
         def change_year(*args):
-            """Update selected year."""
-            self.year = selected_year.get()
-            self.change_months()
+            """Update selected year if it changes."""
+            if self.year == self.selected_year.get():
+                pass
+            else:
+                self.year = self.selected_year.get()
+                self.change_months()
 
-        selected_year.trace('w', change_year)
+        self.selected_year.trace('w', change_year)
 
     def _create_drop_month(self):
         """Create month dropdown"""
@@ -368,7 +385,7 @@ class App:
 
         # Create dropdown widget, setting initial month and menu options
         self.drop_month = tk.OptionMenu(self.master, self.selected_month,
-                                        *month_list)
+                                        self.month, *month_list)
 
         # Format and place dropdown widget
         self.drop_month["bg"] = "#e9e9ed"
@@ -381,8 +398,25 @@ class App:
         # Triggered by changes in selected month
         self.selected_month.trace('w', change_month)
 
+    def _create_btn_new_month(self):
+        """Creates a button for adding a new month."""
 
-class TransactionPopUp:
+        def btn_new_month_command():
+            PopUpNewMonth(self.master)
+
+        # Create new-month button
+        btn_new_month = tk.Button(self.master)
+        btn_new_month["bg"] = "#ffffff"
+        ft = tkFont.Font(family='Times', size=14)
+        btn_new_month["font"] = ft
+        btn_new_month["fg"] = "#000000"
+        btn_new_month["justify"] = "center"
+        btn_new_month["text"] = "+"
+        btn_new_month.place(x=222, y=11, width=27, height=27)
+        btn_new_month["command"] = btn_new_month_command
+
+
+class PopUpTransaction:
 
     def __init__(self, parent, existing_values=None, transaction='Expense'):
 
@@ -418,7 +452,7 @@ class TransactionPopUp:
         # Establish dictionary of initial values for the popup's entry fields
         self.initial_values = {
             'Day': str(datetime.now().day),
-            'Corp': '',
+            'Vendor': '',
             'Type': self.transaction_key,
             'Category': '',
             'Subcategory': '',
@@ -448,7 +482,7 @@ class TransactionPopUp:
         # Assign these values to their appropriate Tk StringVars
         self.selected_day.set(self.initial_values['Day'])
         self.selected_type.set(self.initial_values['Type'])
-        self.corp_var.set(self.initial_values['Corp'])
+        self.vendor_var.set(self.initial_values['Vendor'])
         self.selected_cat.set(self.initial_values['Category'])
         self.selected_subcat.set(self.initial_values['Subcategory'])
         self.amount_var.set(self.initial_values['Amount'])
@@ -479,7 +513,7 @@ class TransactionPopUp:
         # Gather all user-set values into a list
         # Conveniently this is already in a CSV friendly format
         entry = [self.selected_day.get(),
-                 self.corp_var.get(),
+                 self.vendor_var.get(),
                  self.selected_type.get(),
                  self.selected_cat.get(),
                  self.selected_subcat.get(),
@@ -505,8 +539,8 @@ class TransactionPopUp:
         self._create_drop_day()
 
         # Transaction vendor (ex: Amazon, Steam)
-        self._create_frm_corp()
-        self._create_ent_corp()
+        self._create_frm_vendor()
+        self._create_ent_vendor()
 
         # Transaction type (ex: Income, Expense)
         self._create_frm_type()
@@ -606,7 +640,6 @@ class TransactionPopUp:
 
         TODO:
          - Populate list of possible days based on selected month
-         - Set default day to current day
         """
 
         # Set the list of available days for the selected month
@@ -626,43 +659,43 @@ class TransactionPopUp:
         drop_day["justify"] = "center"
         drop_day.pack()
 
-    def _create_frm_corp(self):
+    def _create_frm_vendor(self):
         """Label frame for the company / vendor entry box."""
 
         # Create the label frame
-        self.lbl_corp = tk.LabelFrame(self.popup)
+        self.lbl_vendor = tk.LabelFrame(self.popup)
 
         # Format and place the frame
-        self.lbl_corp["bg"] = "#e9e9ed"
+        self.lbl_vendor["bg"] = "#e9e9ed"
         ft = tkFont.Font(family='Times', size=10)
-        self.lbl_corp["font"] = ft
-        self.lbl_corp["fg"] = "#000000"
-        self.lbl_corp['labelanchor'] = 'n'
-        self.lbl_corp['text'] = 'Company'        # Placeholder
-        self.lbl_corp['padx'] = 5
-        self.lbl_corp['pady'] = 5
-        self.lbl_corp.place(x=80, y=0, width=200, height=60)
+        self.lbl_vendor["font"] = ft
+        self.lbl_vendor["fg"] = "#000000"
+        self.lbl_vendor['labelanchor'] = 'n'
+        self.lbl_vendor['text'] = 'Company'        # Placeholder
+        self.lbl_vendor['padx'] = 5
+        self.lbl_vendor['pady'] = 5
+        self.lbl_vendor.place(x=80, y=0, width=200, height=60)
 
-    def _create_ent_corp(self):
+    def _create_ent_vendor(self):
         """Entry box for the corporation / company / vendor."""
 
         # Create the entry box
-        ent_corp = tk.Entry(self.lbl_corp)
+        ent_vendor = tk.Entry(self.lbl_vendor)
 
         # Create and assign StringVar that will retrieve entered text
-        self.corp_var = tk.StringVar()
-        ent_corp['textvariable'] = self.corp_var
+        self.vendor_var = tk.StringVar()
+        ent_vendor['textvariable'] = self.vendor_var
 
         # TODO: use built-in validation tool if needed
-        # ent_corp['validate'] = ?
+        # ent_vendor['validate'] = ?
 
         # Format and place dropdown widget
-        ent_corp["bg"] = "#ffffff"
+        ent_vendor["bg"] = "#ffffff"
         ft = tkFont.Font(family='Times', size=10)
-        ent_corp["font"] = ft
-        ent_corp["fg"] = "#000000"
-        ent_corp["justify"] = "left"
-        ent_corp.place(x=2, y=3, width=180, height=25)
+        ent_vendor["font"] = ft
+        ent_vendor["fg"] = "#000000"
+        ent_vendor["justify"] = "left"
+        ent_vendor.place(x=2, y=3, width=180, height=25)
 
     def _create_frm_type(self):
         """Create a label frame for the category."""
@@ -689,6 +722,18 @@ class TransactionPopUp:
          - Change color of button depending on Expense or Income.
         """
 
+        # Upon transaction type change, set color and change categories
+        def change_transaction(*args):
+            if self.selected_type.get() == 'Expense':
+                drop_type["bg"] = '#ff7800'
+                drop_type['activebackground'] = '#ff7800'
+            elif self.selected_type.get() == 'Income':
+                drop_type["bg"] = '#5fb878'
+                drop_type['activebackground'] = '#5fb878'
+            else:
+                pass            # Shouldn't happen, just a backup
+            self.change_categories(self, *args)
+
         # Create Tk StringVar for selected transaction type
         self.selected_type = tk.StringVar()
 
@@ -705,7 +750,7 @@ class TransactionPopUp:
         drop_type.pack()
 
         # When user selects a new transaction type, change the categories
-        self.selected_type.trace('w', self.change_categories)
+        self.selected_type.trace('w', change_transaction)
 
     def _create_frm_cat(self):
         """Create a label frame for the category."""
@@ -854,7 +899,7 @@ class TransactionPopUp:
         ent_note['textvariable'] = self.note_var
 
         # TODO: use built-in validation tool if needed
-        # ent_corp['validate'] = ?
+        # ent_vendor['validate'] = ?
 
         # Format and place dropdown widget
         ent_note["bg"] = "#ffffff"
@@ -871,7 +916,7 @@ class TransactionPopUp:
         self.btn_save = tk.Button(self.popup)
 
         # Format and place the button
-        self.btn_save["bg"] = "#e9e9ed"
+        self.btn_save["bg"] = "#8b8bef"
         ft = tkFont.Font(family='Times', size=10)
         self.btn_save["font"] = ft
         self.btn_save["fg"] = "#000000"
@@ -885,8 +930,162 @@ class TransactionPopUp:
         self.popup.bind('<Return>', lambda event=None: self.btn_save.invoke())
 
 
+class PopUpNewMonth:
+
+    def __init__(self, parent):
+
+        # Create a top-level window as the popup
+        self.popup = tk.Toplevel(parent)
+        self.popup.grab_set()                   # Prevent parent interaction
+        self.popup.configure(takefocus=True)    # Doesn't seem to work
+
+        # Set popup window title
+        self.popup.title("New Month")
+
+        # Bind ESCAPE key to dismiss function
+        self.popup.bind('<Escape>', lambda event=None: self.dismiss())
+
+        # Window size parameters
+        width, height = 240, 35
+
+        # Set the size; not sure how it works, I just copied it
+        screenwidth = self.popup.winfo_screenwidth()
+        screenheight = self.popup.winfo_screenheight()
+        alignstr = '%dx%d+%d+%d' % (width, height, (screenwidth - width) / 2,
+                                    (screenheight - height) / 2)
+        self.popup.geometry(alignstr)
+        self.popup.resizable(width=False, height=False)
+
+        # Assemble the popup UI
+        self.build_gui()
+
+    def dismiss(self, update=False):
+        """
+        Destroys the popup, in case it's needed outside of clicking the
+        window's X button.
+
+        Can send out entered data before destruction, if needed.
+
+        :param update: Set to True if entries in the popup fields should be
+        saved, or False to simply close the popup window.
+        """
+        if update:
+            y = self.year_var.get()
+            m = self.selected_month.get()
+
+            num_m = month_to_num(m)
+            print(num_m)
+
+            app.year, app.month, app.month_num = y, m, num_m
+            app.fill_tree(new_month=True)
+
+        # Release the main GUI window and destroy the popup
+        self.popup.grab_release()
+        self.popup.destroy()
+
+    def build_gui(self):
+        """Build out the pop-up GUI."""
+        self._create_ent_year()
+        self._create_drop_month()
+        self._create_btn_accept()
+
+    def _create_ent_year(self):
+        """Entry box for the user's chosen year."""
+
+        # Create the entry box
+        ent_year = tk.Entry(self.popup)
+
+        # Create and assign Tk StringVar that will retrieve entered amount
+        self.year_var = tk.StringVar()
+        ent_year['textvariable'] = self.year_var
+        self.year_var.set('Year')
+
+        # Format and place dropdown widget
+        ent_year["bg"] = "#ffffff"
+        ft = tkFont.Font(family='Times', size=10)
+        ent_year["font"] = ft
+        ent_year["fg"] = "#000000"
+        ent_year["justify"] = "center"
+        ent_year.place(x=5, y=2, width=60, height=27)
+
+    def _create_drop_month(self):
+
+        # Set month list
+        month_list = [
+            'January',
+            'February',
+            'March',
+            'April',
+            'May',
+            'June',
+            'July',
+            'August',
+            'September',
+            'October',
+            'November',
+            'October',
+            'December',
+        ]
+
+        # Create and set TK string variable for selected month
+        self.selected_month = tk.StringVar()
+        self.selected_month.set('Month')
+
+        # Create dropdown widget, setting initial month and menu options
+        self.drop_month = tk.OptionMenu(self.popup, self.selected_month,
+                                        *month_list)
+
+        # Format and place dropdown widget
+        self.drop_month["bg"] = "#e9e9ed"
+        ft = tkFont.Font(family='Times', size=10)
+        self.drop_month["font"] = ft
+        self.drop_month["fg"] = "#000000"
+        self.drop_month["justify"] = "center"
+        self.drop_month.place(x=70, y=0, width=100, height=30)
+
+    def _create_btn_accept(self):
+        """Create a button to confirm entry."""
+
+        # Create the button
+        self.btn_save = tk.Button(self.popup)
+
+        # Format and place the button
+        self.btn_save["bg"] = "#8b8bef"
+        ft = tkFont.Font(family='Times', size=10)
+        self.btn_save["font"] = ft
+        self.btn_save['text'] = 'Accept'
+        self.btn_save['padx'] = 5
+        self.btn_save['pady'] = 5
+        self.btn_save.place(x=175, y=1, width=60, height=27)
+
+        # Set button's command and bind ENTER key to it
+        self.btn_save.config(command=lambda: self.dismiss(update=True))
+        self.popup.bind('<Return>', lambda event=None: self.btn_save.invoke())
+
+
+def month_to_num(m):
+    """
+    :param m: Name of month in full, e.g. 'August'
+    :return: Padded month number, e.g. '08'
+    """
+    return {
+        'January': '01',
+        'February': '02',
+        'March': '03',
+        'April': '04',
+        'May': '05',
+        'June': '06',
+        'July': '07',
+        'August': '08',
+        'September': '09',
+        'October': '10',
+        'November': '11',
+        'December': '12'
+    }[m]
+
+
 # Set default file directory
-path = DirReader('D:/cs/projects/finances/test_dir')
+path = DirReader('C:/Create/Code/projects/finances/test_dir')
 
 
 if __name__ == "__main__":
