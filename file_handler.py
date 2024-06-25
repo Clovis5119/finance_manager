@@ -76,12 +76,15 @@ class DirReader:
     """A class to identify the range of years and months in a directory."""
 
     def __init__ (self, directory):
-        self.files = os.listdir(directory)
+        self.directory = directory
+
+    def get_files(self):
+        return os.listdir(self.directory)
 
     def get_years(self):
         """Returns list of years found in directory."""
         years = []
-        for date in self.files:
+        for date in self.get_files():
             if date[:4] not in years:
                 years.append(date[:4])
         return sorted(years)
@@ -89,10 +92,9 @@ class DirReader:
     def get_months(self, year):
         """Returns list of months for a given year in the directory."""
         months = []
-        for date in self.files:
+        for date in self.get_files():
             if date[:4] == year and date[8:12] != 'temp':
                 month = int(date[5:7])
                 months.append(calendar.month_name[month])
-        print(f"Months available for year {year}: {months}")
         return months
 

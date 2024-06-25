@@ -26,7 +26,6 @@ class MonthlyFinances:
 
         # If perm CSV file doesn't already exist, create it
         if self.perm_file.exists is False:
-            print("File for current month not found.")
             self.perm_file.write_content([keys])        # Write header line
             print(f"Created perm file :: {self.path}")
 
@@ -36,7 +35,7 @@ class MonthlyFinances:
         # Create temporary working file and copy contents to it
         self.temp_file = FileCSV(f'{self.path}-temp.csv')
         self.temp_file.write_content(self.data)
-        print(f"Created temp file ::  {f'{self.path}-temp.csv'}")
+        print(f"Copied contents to temp file ::  {f'{self.path}-temp.csv'}")
 
         # Used by App class to determine read range
         self.length = self.get_length()
@@ -44,8 +43,9 @@ class MonthlyFinances:
     def get_length(self):
         try:
             return len(self.data)
-        except TypeError:
-            print("ERR: TypeError when attempting to measure CSV length.")
+        except TypeError as err:
+            print(f"ERR: TypeError - {err} - "
+                  f"when attempting to measure CSV file length")
             pass
 
     def get_header_index(self, n):
@@ -57,7 +57,16 @@ class MonthlyFinances:
         :param n: string to be found in CSV header row
         :return: string's index in the header row
         """
-        return self.data[0].index(n.strip())
+        try:
+            return self.data[0].index(n.strip())
+        except IndexError as err:
+            print(f"ERR: IndexError - {err} - "
+                  f"when attempting to get index of a header. "
+                  f"self.data is {self.data}")
+        except TypeError as err:
+            print(f"ERR: TypeError - {err} - "
+                  f"when attempting to get index of a header. "
+                  f"self.data is {self.data}")
 
     def get_row(self, i, listed=True):
         """Return a row, formatted as requested."""
@@ -110,7 +119,6 @@ class MonthlyFinances:
 
         self.commit_changes()
         self.temp_file.delete_file()
-        print(f"Deleted temp file.")
 
     def commit_changes(self):
         self.perm_file.write_content(self.data)

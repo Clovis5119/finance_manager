@@ -3,10 +3,6 @@ TODO:
  - Expand menu bar
     - Add options submenu
     - Create class for setting options
- - Allow user to create new year file
-    - Add + button in dropdown year menu
- - Allow user to create new month file
-    - Add + button in dropdown month menu
  - Allow user to set transaction file directory
  - Allow user to set their own categories
  - Allow user to apply category changes to all existing files
@@ -16,7 +12,7 @@ TODO:
  - Provide transaction history search options, global and by type
  - Allow nesting transaction types within single purchase
     - So user can collapse and see the total or breakdown in the GUI
- - Handle user inputing non UTF-8 characters
+ - Handle user inputting non UTF-8 characters
  - Add handling for recurring transactions
 
 """
@@ -31,7 +27,7 @@ from file_handler import DirReader
 from categories import categories as cats
 
 
-def format_month(m):
+def month_to_num(m):
     """
     Format a month name into a number.
 
@@ -58,8 +54,8 @@ class App:
         self.month = date_now.strftime('%B')      # Ex: 'August'
         self.month_num = date_now.strftime('%m')  # Ex: '08'
 
-        # Set root to constant variable
-        self.master = master
+        self.master = master        # Set root to constant variable
+        self.init = True            # Flag for content initialization
 
         # Initialize empty variables
         self.content = None         # Content to fill treeview
@@ -80,22 +76,18 @@ class App:
         self.master.geometry(alignstr)
         self.master.resizable(width=False, height=False)
 
-        menubar = tk.Menu(self.master)
-        self.master.config(menu=menubar)
-        file_menu = tk.Menu(menubar, tearoff=False)
-        file_menu.add_command(label='Exit', command=self.master.destroy)
-        menubar.add_cascade(label='File', menu=file_menu, underline=0)
-
     def build_gui(self):
-        """Build all the GUI elements."""
+        """Build all the main app GUI elements."""
 
         # Create treeview (main window)
-        # Change mode to 'extended' to enable multiple selection
-        # Change mode to 'browse' to enable single selection
-        self.tree = ttk.Treeview(self.master, selectmode='browse')
-
-        # self._set_listbox()
+        self.tree = ttk.Treeview(
+            self.master,
+            selectmode='browse',    # 'extended' for multiple selection
+        )
         self._set_treeview()
+
+        # Create all other widgets
+        self._create_menu_bar()
         self._create_btn_income()
         self._create_btn_expense()
         self._create_btn_edit()
@@ -105,26 +97,41 @@ class App:
         self._create_btn_new_month()
         self._create_btn_readout()
         self._create_btn_save()
-        self.fill_tree()
+        self.update_logic(init=True)
 
-    def fill_tree(self, content_added=False, new_month=False):
-        """Fill the treeview with content."""
+    def dismiss(self, save=False):
 
-        # Clear the box of any content
-        self.tree.delete(*self.tree.get_children())
+        if save:
+            self.content.commit_changes()
+        self.master.destroy()
 
-        # Get new data from new instance.
-        # TODO: Optimize to limit repeat instances.
+    def update_logic(self, init=False, new_transaction=False):
 
-        # Avoids creating a new instance of the same data
-        if content_added:
-            pass
-        elif new_month:
+        # Avoid creating a new instance of the same data
+        if new_transaction is False:
+            if init is False:
+                self.content.close_month()
             self.content = MonthlyFinances(self.year, self.month_num)
+
+        if init:
+            self.init = True
+            self.update_year_list()
+            self.update_month_list()
             self.selected_year.set(self.year)
             self.selected_month.set(self.month)
-        else:
-            self.content = MonthlyFinances(self.year, self.month_num)
+
+        self.update_tree()
+        self.init = False
+
+    def update_tree(self, new_transaction=False):
+        """
+        Update the treeview widget. Call this function whenever the year or
+         month changes, or when transaction data is edited.
+        :param new_transaction: True when data is updated but no month change
+        """
+
+        # First clear the treeview of content
+        self.tree.delete(*self.tree.get_children())
 
         # Get column index for headers we care about.
         # TODO: Create settings file that includes header preferences.
@@ -136,16 +143,16 @@ class App:
         # Fill the treeview data, row by row
         for row in range(1, self.content.length):
 
-            # Get the data for each column
+            # First fetch the data at each column for a given row
             col0 = self.content.get_value(row, c0)
             col1 = self.content.get_value(row, c1)
             col2 = self.content.get_value(row, c2)
             col3 = self.content.get_value(row, c3)
 
-            # Then arrange and format it
+            # Arrange and format the data
             text = [f"{col0}", f"{col1}", f"{col2}", f"{col3}"]
 
-            # Then insert it in the treeview
+            # Then insert the data in the treeview
             self.tree.insert(parent='', index=row, text='', values=text)
 
     def get_selection(self):
@@ -161,7 +168,27 @@ class App:
         index = self.tree.index(iid) + 1        # Index
         return iid, index
 
-    def change_months(self):
+    def update_year_list(self):
+        """
+        Change the dropdown menu displaying available years for selection.
+        This function should be called whenever the user adds a new month,
+         which may be for a new year.
+        """
+
+        # Get updated list of available years based
+        year_list = path.get_years()
+
+        # Clear current dropdown menu contents
+        menu = self.drop_year['menu']
+        menu.delete(0, 'end')
+
+        # Repopulate dropdown menu with updated year list
+        for year in year_list:
+            menu.add_command(label=year,
+                             command=lambda value=year:
+                             self.selected_year.set(value))
+
+    def update_month_list(self):
         """
         Change the dropdown menu displaying available months for selection.
         This function should be triggered whenever the user selects a new
@@ -172,31 +199,24 @@ class App:
         # Get updated list of available months based on selected year
         month_list = path.get_months(self.year)
 
-        # Clear current menu contents
+        # Clear current dropdown menu contents
         menu = self.drop_month["menu"]
         menu.delete(0, "end")
 
-        # Repopulate menu based on contents of month list
+        # Repopulate dropdown menu with updated month list
         for month in month_list:
             menu.add_command(label=month,
                              command=lambda value=month:
                              self.selected_month.set(value))
 
-        # If selected month isn't valid, change to most recent valid month
-        month_name = self.selected_month.get()
+        # If previously selected month isn't in the new month list,
+        # change to the earliest available one
+        if self.init is False:
+            new_month = self.selected_month.get()
+            if new_month not in month_list:
+                new_month = month_list[-1]
 
-        # If month name is out of range, set it to one within the range
-        if month_name not in month_list:
-            new_month = month_list[-1]
-
-            # This automatically triggers the change_month function,
-            # which loops back to repop, so refill isn't required
             self.selected_month.set(new_month)
-
-        # If month name is in range, fill the treeview box
-        else:
-            self.content.close_month()
-            self.fill_tree()
 
     def _set_treeview(self):
         """"""
@@ -222,6 +242,17 @@ class App:
         self.tree.heading('Amount', text='Amount', anchor=tk.CENTER)
 
         self.tree.place(x=20, y=50, width=475, height=560)
+
+    def _create_menu_bar(self):
+
+        menubar = tk.Menu(self.master)
+        self.master.config(menu=menubar)
+        file_menu = tk.Menu(menubar, tearoff=False)
+        file_menu.add_command(label='Exit',
+                              command=lambda: self.dismiss())
+        file_menu.add_command(label='Save & Exit',
+                              command=lambda: self.dismiss(save=True))
+        menubar.add_cascade(label='File', menu=file_menu, underline=0)
 
     def _create_btn_income(self):
         """"""
@@ -335,31 +366,28 @@ class App:
 
     def _create_drop_year(self):
         """"""
+        def change_year(*args):
+            """Update selected year if it changes."""
+            if self.init is False:
+                self.year = self.selected_year.get()
+                self.update_month_list()
+
         # Get the list of available years based on files in directory
         year_list = path.get_years()
 
         # Create and set TK string variable for selected year
         self.selected_year = tk.StringVar()
-        self.selected_year.set(self.year)
 
         # Create dropdown widget, setting initial year and menu options
-        drop_year = tk.OptionMenu(self.master, self.selected_year, *year_list)
+        self.drop_year = tk.OptionMenu(self.master, self.selected_year, *year_list)
 
         # Format and place dropdown widget
-        drop_year["bg"] = "#e9e9ed"
+        self.drop_year["bg"] = "#e9e9ed"
         ft = tkFont.Font(family='Times', size=10)
-        drop_year["font"] = ft
-        drop_year["fg"] = "#000000"
-        drop_year["justify"] = "center"
-        drop_year.place(x=20, y=10, width=100, height=30)
-
-        def change_year(*args):
-            """Update selected year if it changes."""
-            if self.year == self.selected_year.get():
-                pass
-            else:
-                self.year = self.selected_year.get()
-                self.change_months()
+        self.drop_year["font"] = ft
+        self.drop_year["fg"] = "#000000"
+        self.drop_year["justify"] = "center"
+        self.drop_year.place(x=20, y=10, width=100, height=30)
 
         self.selected_year.trace('w', change_year)
 
@@ -368,20 +396,16 @@ class App:
 
         def change_month(*args):
             """Update selected month."""
-
-            # Get the currently selected month from TK string var
-            month_name = self.selected_month.get()
-            self.month_num = format_month(month_name)
-
-            # Update box contents
-            self.change_months()
+            if self.init is False:
+                self.month = self.selected_month.get()
+                self.month_num = month_to_num(self.month)
+                self.update_logic()
 
         # Get the list of available months based on selected year
         month_list = path.get_months(self.year)
 
         # Create and set TK string variable for selected month
         self.selected_month = tk.StringVar()
-        self.selected_month.set(self.month)
 
         # Create dropdown widget, setting initial month and menu options
         self.drop_month = tk.OptionMenu(self.master, self.selected_month,
@@ -529,7 +553,7 @@ class PopUpTransaction:
             app.content.add_row(entry)
 
         # Update content in the main GUI's treeview
-        app.fill_tree(content_added=True)
+        app.update_tree(new_transaction=True)
 
     def build_gui(self):
         """Assemble of the popup's GUI elements"""
@@ -970,14 +994,12 @@ class PopUpNewMonth:
         saved, or False to simply close the popup window.
         """
         if update:
-            y = self.year_var.get()
-            m = self.selected_month.get()
-
+            y = self.var_year.get()
+            m = self.var_month.get()
             num_m = month_to_num(m)
-            print(num_m)
 
             app.year, app.month, app.month_num = y, m, num_m
-            app.fill_tree(new_month=True)
+            app.update_logic(init=True)
 
         # Release the main GUI window and destroy the popup
         self.popup.grab_release()
@@ -996,9 +1018,9 @@ class PopUpNewMonth:
         ent_year = tk.Entry(self.popup)
 
         # Create and assign Tk StringVar that will retrieve entered amount
-        self.year_var = tk.StringVar()
-        ent_year['textvariable'] = self.year_var
-        self.year_var.set('Year')
+        self.var_year = tk.StringVar()
+        ent_year['textvariable'] = self.var_year
+        self.var_year.set('Year')
 
         # Format and place dropdown widget
         ent_year["bg"] = "#ffffff"
@@ -1028,11 +1050,11 @@ class PopUpNewMonth:
         ]
 
         # Create and set TK string variable for selected month
-        self.selected_month = tk.StringVar()
-        self.selected_month.set('Month')
+        self.var_month = tk.StringVar()
+        self.var_month.set('Month')
 
         # Create dropdown widget, setting initial month and menu options
-        self.drop_month = tk.OptionMenu(self.popup, self.selected_month,
+        self.drop_month = tk.OptionMenu(self.popup, self.var_month,
                                         *month_list)
 
         # Format and place dropdown widget
@@ -1063,27 +1085,6 @@ class PopUpNewMonth:
         self.popup.bind('<Return>', lambda event=None: self.btn_save.invoke())
 
 
-def month_to_num(m):
-    """
-    :param m: Name of month in full, e.g. 'August'
-    :return: Padded month number, e.g. '08'
-    """
-    return {
-        'January': '01',
-        'February': '02',
-        'March': '03',
-        'April': '04',
-        'May': '05',
-        'June': '06',
-        'July': '07',
-        'August': '08',
-        'September': '09',
-        'October': '10',
-        'November': '11',
-        'December': '12'
-    }[m]
-
-
 # Set default file directory
 path = DirReader('C:/Create/Code/projects/finances/test_dir')
 
@@ -1093,5 +1094,3 @@ if __name__ == "__main__":
     app = App(root)         # Initialize GUI with root as parent
     app.build_gui()         # Build GUI elements
     root.mainloop()
-
-    app.content.close_month()
